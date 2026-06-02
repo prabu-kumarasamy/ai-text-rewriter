@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Text Rewriter - Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>AI Text Rewriter</h1>
+      <p class="subtitle">Configure your AI provider and rewrite preferences</p>
+    </header>
+
+    <div class="card">
+      <h2>AI Provider</h2>
+      <div class="form-group">
+        <label for="provider">Provider</label>
+        <select id="provider">
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="custom">Custom API Endpoint</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="custom-endpoint-group" style="display:none">
+        <label for="customEndpoint">Custom API Endpoint URL</label>
+        <input type="url" id="customEndpoint" placeholder="https://api.example.com/v1/chat/completions">
+        <p class="hint">Must be an OpenAI-compatible chat completions endpoint</p>
+      </div>
+
+      <div class="form-group">
+        <label for="apiKey">API Key</label>
+        <div class="input-with-toggle">
+          <input type="password" id="apiKey" placeholder="Enter your API key">
+          <button type="button" id="toggleApiKey" class="toggle-btn" title="Show/Hide API Key">Show</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="model">Model</label>
+        <input type="text" id="model" placeholder="Model name">
+        <p class="hint" id="model-hint">e.g. gpt-4o, claude-sonnet-4-20250514, gemini-2.0-flash, deepseek-chat</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Generation Parameters</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="temperature">Temperature</label>
+          <div class="range-with-value">
+            <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7">
+            <span class="range-value" id="temperature-value">0.7</span>
+          </div>
+          <p class="hint">Lower = more focused, Higher = more creative</p>
+        </div>
+        <div class="form-group">
+          <label for="maxTokens">Max Token Limit</label>
+          <input type="number" id="maxTokens" min="1" max="128000" value="2048">
+          <p class="hint">Maximum tokens in the response (1-128000)</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Rewrite Preferences</h2>
+      <div class="form-group">
+        <label for="defaultMode">Default Rewrite Mode</label>
+        <select id="defaultMode">
+          <option value="improve-grammar">Improve Grammar</option>
+          <option value="professional-tone">Professional Tone</option>
+          <option value="friendly-tone">Friendly Tone</option>
+          <option value="concise">Concise Version</option>
+          <option value="expand">Expand Content</option>
+          <option value="simplify">Simplify Content</option>
+          <option value="business-communication">Business Communication</option>
+          <option value="email-style">Email Style</option>
+          <option value="custom">Custom Prompt</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="custom-mode-group" style="display:none">
+        <label for="customModePrompt">Custom Mode Prompt</label>
+        <textarea id="customModePrompt" rows="4" placeholder="Write your custom rewrite instructions here. Use {{text}} as placeholder for the selected text."></textarea>
+        <p class="hint">Use {{text}} as the placeholder for selected text</p>
+      </div>
+
+      <div class="form-group">
+        <label for="customPromptTemplate">Custom Prompt Template (overrides mode prompts)</label>
+        <textarea id="customPromptTemplate" rows="4" placeholder="Rewrite the following text: {{text}}"></textarea>
+        <p class="hint">Use {{text}} as the placeholder for selected text. Leave empty to use mode-specific prompts.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Connection Test</h2>
+      <p class="card-description">Test your API connection to verify the configuration is correct.</p>
+      <div class="form-actions">
+        <button type="button" id="testConnection" class="btn btn-secondary">Test Connection</button>
+        <span id="test-result" class="test-result"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Import / Export</h2>
+      <p class="card-description">Export your settings for backup or import a configuration file. Note: Exported files contain your API key.</p>
+      <div class="form-actions">
+        <button type="button" id="exportSettings" class="btn btn-secondary">Export Settings</button>
+        <button type="button" id="importSettings" class="btn btn-secondary">Import Settings</button>
+        <input type="file" id="importFile" accept=".json" style="display:none">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Usage</h2>
+      <p class="card-description">To use the AI Text Rewriter:</p>
+      <ol class="usage-steps">
+        <li>Select text in any editable field (input, textarea, or rich text editor).</li>
+        <li>Right-click on the selected text.</li>
+        <li>Choose <strong>Rewrite with AI</strong> and select a rewrite mode.</li>
+        <li>Click a suggestion to select it, then click <strong>Replace Selected Text</strong>.</li>
+      </ol>
+    </div>
+
+    <div class="form-actions save-section">
+      <button type="button" id="saveSettings" class="btn btn-primary">Save Settings</button>
+      <span id="save-status" class="save-status"></span>
+    </div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

@@ -330,8 +330,7 @@ function showSuggestions(suggestions, mode, origText) {
 }
 
 function showVoicePanel() {
-  if (!currentPanel) return;
-  const panel = currentPanel.panel;
+  const panel = currentPanel?.panel || createPanel();
 
   panel.innerHTML = `
     <div class="ai-rewriter-header">
@@ -738,6 +737,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'startVoiceInput') {
+    const sel = getSelectedTextInEditable() || savedSelection;
+    if (sel) {
+      savedSelection = sel;
+      originalText = sel.text;
+    }
     showVoicePanel();
     sendResponse({ success: true });
     return false;

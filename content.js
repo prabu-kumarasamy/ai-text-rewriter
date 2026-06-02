@@ -140,19 +140,15 @@ function startVoiceRecognition(lang) {
 
   voiceRecognition.onend = () => {
     isListening = false;
-    updateMicButton(false);
-    if (finalText.trim() && savedSelection) {
-      replaceTextInEditable(savedSelection, finalText.trim());
-      savedSelection = null;
-      removePanel();
-    }
+    showVoiceResult(finalText);
   };
 
   voiceRecognition.onerror = (event) => {
     isListening = false;
-    updateMicButton(false);
-    if (event.error !== 'no-speech') {
+    if (event.error !== 'no-speech' && event.error !== 'aborted') {
       showError('Voice error: ' + event.error);
+    } else {
+      showVoiceResult(finalText);
     }
   };
 
@@ -173,8 +169,101 @@ function updateMicButton(listening) {
   if (!btn) return;
   btn.classList.toggle('listening', listening);
   btn.innerHTML = listening
-    ? '<span class="ai-mic-pulse"></span>Listening...'
-    : 'Start Speaking';
+    ? '<span class="ai-mic-pulse"></span>Recording... Click to Stop'
+    : 'Start Recording';
+}
+
+function showVoiceResult(finalText) {
+  if (!currentPanel) return;
+  const panel = currentPanel.panel;
+  const trimmed = (finalText || '').trim();
+
+  if (!trimmed) {
+    panel.querySelector('.ai-voice-container').innerHTML = `
+      <div class="ai-mic-icon">mic</div>
+      <p class="ai-voice-label">No speech detected</p>
+      <p class="ai-voice-sub">Try again or close</p>
+    `;
+    const btn = panel.querySelector('#ai-voice-btn');
+    if (btn) { btn.textContent = 'Try Again'; btn.classList.remove('listening'); }
+    return;
+  }
+
+  panel.querySelector('.ai-voice-container').innerHTML = `
+    <p class="ai-voice-label">Transcribed text:</p>
+    <div class="ai-voice-transcript" id="ai-voice-result-text">${escapeHtml(trimmed)}</div>
+    <div class="ai-voice-actions">
+      <button class="ai-btn ai-btn-primary" id="ai-voice-insert">Insert Text</button>
+      <div class="ai-voice-rewrite-options">
+        <p class="ai-voice-sub">Or rewrite with AI:</p>
+        <div class="ai-mode-grid">
+          <button class="ai-mode-chip" data-voice-rewrite="improve-grammar">Improve Grammar</button>
+          <button class="ai-mode-chip" data-voice-rewrite="professional-tone">Professional Tone</button>
+          <button class="ai-mode-chip" data-voice-rewrite="concise">Concise Version</button>
+          <button class="ai-mode-chip" data-voice-rewrite="expand">Expand Content</button>
+          <button class="ai-mode-chip" data-voice-rewrite="simplify">Simplify Content</button>
+          <button class="ai-mode-chip" data-voice-rewrite="friendly-tone">Friendly Tone</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const insertBtn = panel.querySelector('#ai-voice-insert');
+  insertBtn.addEventListener('click', () => {
+    if (savedSelection) {
+      replaceTextInEditable(savedSelection, trimmed);
+      savedSelection = null;
+    }
+    removePanel();
+  });
+
+  panel.querySelectorAll('[data-voice-rewrite]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const mode = chip.dataset.voiceRewrite;
+      const modeName = REWRITE_MODE_NAMES[mode] || mode;
+
+      panel.querySelector('.ai-voice-container').innerHTML = `
+        <div class="ai-loading-state">
+          <div class="ai-spinner-ring"></div>
+          <p class="ai-loading-text">Rewriting with ${escapeHtml(modeName)}...</p>
+        </div>
+      `;
+
+      try {
+        const settings = await getSettingsFromStorage();
+        const prompt = getVoicePrompt(mode, trimmed, settings.customModePrompt);
+        const response = await chrome.runtime.sendMessage({
+          action: 'callAI', settings, prompt
+        });
+        if (response.success) {
+          if (savedSelection) {
+            replaceTextInEditable(savedSelection, response.text);
+            savedSelection = null;
+          }
+          removePanel();
+        } else {
+          showError(response.error || 'Rewrite failed');
+        }
+      } catch (error) {
+        showError(error.message || 'Rewrite failed');
+      }
+    });
+  });
+
+  const btn = panel.querySelector('#ai-voice-btn');
+  if (btn) { btn.style.display = 'none'; }
+}
+
+function getVoicePrompt(mode, text, customPrompt) {
+  const prompts = {
+    'improve-grammar': `Correct grammar, spelling, and punctuation errors in the following transcribed text. Return only the corrected version.\n\n${text}`,
+    'professional-tone': `Rewrite the following transcribed text in a professional business tone. Use formal language. Return only the rewritten version.\n\n${text}`,
+    'friendly-tone': `Rewrite the following transcribed text in a warm, friendly, conversational tone. Return only the rewritten version.\n\n${text}`,
+    'concise': `Rewrite the following transcribed text more concisely while preserving the key message. Return only the rewritten version.\n\n${text}`,
+    'expand': `Expand the following transcribed text with more detail and elaboration. Return only the expanded version.\n\n${text}`,
+    'simplify': `Simplify the following transcribed text to make it easier to understand. Use simpler words. Return only the simplified version.\n\n${text}`
+  };
+  return prompts[mode] || `${customPrompt || 'Rewrite the following text:'}\n\n${text}`;
 }
 
 // === PANEL UI ===

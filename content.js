@@ -10,7 +10,11 @@ let translateOpts = null;
 
 document.addEventListener('contextmenu', () => {
   const sel = getSelectedTextInEditable();
-  if (sel) savedSelection = sel;
+  if (sel) {
+    savedSelection = sel;
+  } else {
+    savedSelection = getEditablePosition();
+  }
 }, true);
 
 document.addEventListener('keydown', (e) => {
@@ -108,7 +112,7 @@ function initVoiceRecognition(lang) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) return null;
   const rec = new SpeechRecognition();
-  rec.continuous = false;
+  rec.continuous = true;
   rec.interimResults = true;
   rec.lang = lang || 'en-US';
   return rec;
@@ -210,10 +214,11 @@ function showVoiceResult(finalText) {
 
   const insertBtn = panel.querySelector('#ai-voice-insert');
   insertBtn.addEventListener('click', () => {
-    if (savedSelection) {
-      replaceTextInEditable(savedSelection, trimmed);
-      savedSelection = null;
+    const target = getSelectedTextInEditable() || savedSelection || getEditablePosition();
+    if (target) {
+      replaceTextInEditable(target, trimmed);
     }
+    savedSelection = null;
     removePanel();
   });
 
@@ -273,11 +278,9 @@ function showVoicePreview(original, rewritten, modeName) {
   `;
 
   panel.querySelector('#ai-voice-insert').addEventListener('click', () => {
-    const sel = getEditablePosition();
-    if (sel) {
-      replaceTextInEditable(sel, rewritten);
-    } else if (savedSelection) {
-      replaceTextInEditable(savedSelection, rewritten);
+    const target = getSelectedTextInEditable() || savedSelection || getEditablePosition();
+    if (target) {
+      replaceTextInEditable(target, rewritten);
     }
     savedSelection = null;
     removePanel();
@@ -722,8 +725,9 @@ function handleReplace() {
 
   addToHistory(originalText, newText, currentMode);
 
-  if (savedSelection) {
-    replaceTextInEditable(savedSelection, newText);
+  const target = getSelectedTextInEditable() || savedSelection || getEditablePosition();
+  if (target) {
+    replaceTextInEditable(target, newText);
   }
   removePanel();
 }

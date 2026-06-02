@@ -190,6 +190,17 @@
   width: 100%; display: flex; flex-direction: column; gap: 14px;
 }
 .ai-voice-rewrite-options { width: 100%; }
+.ai-voice-preview {
+  width: 100%; display: flex; flex-direction: column; gap: 10px;
+}
+.ai-voice-preview-original { background: #fef2f2; }
+.ai-voice-preview-rewritten { background: #f0fdf4; }
+.ai-voice-preview-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 4px;
+}
+.ai-voice-preview-original .ai-voice-preview-label { color: #dc2626; }
+.ai-voice-preview-rewritten .ai-voice-preview-label { color: #059669; }
 .ai-mic-btn { width: 100%; }
 .ai-mic-btn.listening {
   background: #dc2626; border-color: #dc2626;
@@ -276,6 +287,8 @@
   .ai-mode-chip.active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
   .ai-translate-original, .ai-voice-transcript { background: rgba(255, 255, 255, 0.04); }
   .ai-translate-text { color: #e5e7eb; }
+  .ai-voice-preview-original { background: rgba(220, 38, 38, 0.08); }
+  .ai-voice-preview-rewritten { background: rgba(5, 150, 105, 0.08); }
   .ai-translate-swap { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.08); }
   .ai-translate-field select, .ai-voice-lang-select select {
     background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.1); color: #e5e7eb;

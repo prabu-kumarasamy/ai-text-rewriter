@@ -236,11 +236,7 @@ function showVoiceResult(finalText) {
           action: 'callAI', settings, prompt
         });
         if (response.success) {
-          if (savedSelection) {
-            replaceTextInEditable(savedSelection, response.text);
-            savedSelection = null;
-          }
-          removePanel();
+          showVoicePreview(trimmed, response.text, modeName);
         } else {
           showError(response.error || 'Rewrite failed');
         }
@@ -252,6 +248,69 @@ function showVoiceResult(finalText) {
 
   const btn = panel.querySelector('#ai-voice-btn');
   if (btn) { btn.style.display = 'none'; }
+}
+
+function showVoicePreview(original, rewritten, modeName) {
+  if (!currentPanel) return;
+  const panel = currentPanel.panel;
+
+  panel.querySelector('.ai-voice-container').innerHTML = `
+    <p class="ai-voice-label">Rewritten (${escapeHtml(modeName)}):</p>
+    <div class="ai-voice-preview">
+      <div class="ai-voice-transcript ai-voice-preview-original">
+        <div class="ai-voice-preview-label">Original</div>
+        ${escapeHtml(original)}
+      </div>
+      <div class="ai-voice-transcript ai-voice-preview-rewritten">
+        <div class="ai-voice-preview-label">Rewritten</div>
+        ${escapeHtml(rewritten)}
+      </div>
+    </div>
+    <div class="ai-voice-actions">
+      <button class="ai-btn ai-btn-primary" id="ai-voice-insert">Insert Text</button>
+      <button class="ai-btn ai-btn-secondary" id="ai-voice-retry">Try Another Mode</button>
+    </div>
+  `;
+
+  panel.querySelector('#ai-voice-insert').addEventListener('click', () => {
+    const sel = getEditablePosition();
+    if (sel) {
+      replaceTextInEditable(sel, rewritten);
+    } else if (savedSelection) {
+      replaceTextInEditable(savedSelection, rewritten);
+    }
+    savedSelection = null;
+    removePanel();
+  });
+
+  panel.querySelector('#ai-voice-retry').addEventListener('click', () => {
+    stopVoiceRecognition();
+    showVoicePanel();
+    panel.querySelector('#ai-voice-text').textContent = original;
+    showVoiceResult(original);
+  });
+}
+
+function getEditablePosition() {
+  const activeEl = document.activeElement;
+  if (!activeEl) return null;
+
+  if (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') {
+    const pos = activeEl.selectionStart ?? activeEl.value.length;
+    return { element: activeEl, start: pos, end: pos };
+  }
+
+  if (activeEl.isContentEditable || activeEl.contentEditable === 'true') {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      if (activeEl.contains(range.commonAncestorContainer)) {
+        range.collapse(false);
+        return { element: activeEl, range: range.cloneRange(), text: '' };
+      }
+    }
+  }
+  return null;
 }
 
 function getVoicePrompt(mode, text, customPrompt) {

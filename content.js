@@ -9,7 +9,7 @@ let isListening = false;
 let translateOpts = null;
 
 document.addEventListener('contextmenu', () => {
-  const sel = getSelectedTextInEditable();
+  const sel = getAnySelectedText();
   if (sel) {
     savedSelection = sel;
   } else {
@@ -32,7 +32,7 @@ function getSelectedTextInEditable() {
     const start = activeEl.selectionStart;
     const end = activeEl.selectionEnd;
     if (start === undefined || end === undefined || start === end) return null;
-    return { text: activeEl.value.substring(start, end), element: activeEl, start, end };
+    return { text: activeEl.value.substring(start, end), element: activeEl, start, end, editable: true };
   }
 
   if (activeEl.isContentEditable || activeEl.contentEditable === 'true') {
@@ -43,18 +43,31 @@ function getSelectedTextInEditable() {
     if (node !== activeEl) {
       const range = selection.getRangeAt(0);
       if (range && activeEl.contains(range.commonAncestorContainer)) {
-        return { text: selection.toString(), element: activeEl, range };
+        return { text: selection.toString(), element: activeEl, range, editable: true };
       }
       return null;
     }
-    return { text: selection.toString(), element: activeEl, range: selection.getRangeAt(0) };
+    return { text: selection.toString(), element: activeEl, range: selection.getRangeAt(0), editable: true };
   }
   return null;
+}
+
+function getAnySelectedText() {
+  const sel = getSelectedTextInEditable();
+  if (sel) return sel;
+
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || !selection.toString().trim()) return null;
+  return { text: selection.toString(), element: null, range: selection.getRangeAt(0), editable: false };
 }
 
 function replaceTextInEditable(sel, newText) {
   if (!sel) return false;
   const el = sel.element;
+
+  if (!sel.editable && !el) {
+    return false;
+  }
 
   if ((el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && sel.start !== undefined) {
     el.focus();
@@ -215,8 +228,10 @@ function showVoiceResult(finalText) {
   const insertBtn = panel.querySelector('#ai-voice-insert');
   insertBtn.addEventListener('click', () => {
     const target = getSelectedTextInEditable() || savedSelection || getEditablePosition();
-    if (target) {
+    if (target && target.editable !== false) {
       replaceTextInEditable(target, trimmed);
+    } else {
+      copyToClipboard(trimmed);
     }
     savedSelection = null;
     removePanel();
@@ -279,8 +294,10 @@ function showVoicePreview(original, rewritten, modeName) {
 
   panel.querySelector('#ai-voice-insert').addEventListener('click', () => {
     const target = getSelectedTextInEditable() || savedSelection || getEditablePosition();
-    if (target) {
+    if (target && target.editable !== false) {
       replaceTextInEditable(target, rewritten);
+    } else {
+      copyToClipboard(rewritten);
     }
     savedSelection = null;
     removePanel();
@@ -433,7 +450,7 @@ function showSuggestions(suggestions, mode, origText) {
       </div>
     </div>
     <div class="ai-rewriter-footer">
-      <button class="ai-btn ai-btn-primary" id="ai-rewriter-replace">Replace Selected Text</button>
+      <button class="ai-btn ai-btn-primary" id="ai-rewriter-replace">${(savedSelection?.editable !== false) ? 'Replace Selected Text' : 'Copy to Clipboard'}</button>
       <button class="ai-btn ai-btn-secondary" id="ai-rewriter-regenerate">Regenerate</button>
       <button class="ai-btn ai-btn-ghost" id="ai-rewriter-cancel">Cancel</button>
     </div>
@@ -726,10 +743,18 @@ function handleReplace() {
   addToHistory(originalText, newText, currentMode);
 
   const target = getSelectedTextInEditable() || savedSelection || getEditablePosition();
-  if (target) {
+  if (target && target.editable !== false) {
     replaceTextInEditable(target, newText);
+    removePanel();
+    return;
   }
-  removePanel();
+
+  copyToClipboard(newText);
+  if (currentPanel) {
+    const btn = document.getElementById('ai-rewriter-replace');
+    if (btn) { btn.textContent = 'Copied to clipboard!'; btn.disabled = true; }
+    setTimeout(removePanel, 1200);
+  }
 }
 
 async function handleRegenerate() {
@@ -835,7 +860,7 @@ function escapeHtml(text) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'getSelectedText') {
-    const sel = getSelectedTextInEditable() || savedSelection;
+    const sel = getAnySelectedText() || savedSelection;
     sendResponse({ text: sel?.text || '' });
     return true;
   }
@@ -853,9 +878,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'processRewrite') {
-    const sel = getSelectedTextInEditable() || savedSelection;
+    const sel = getAnySelectedText() || savedSelection;
     if (!sel?.text) {
-      showError('No text selected. Please select text in an editable field.');
+      showError('No text selected. Please select text and try again.');
       sendResponse({ error: 'No text selected' });
       return true;
     }
@@ -900,7 +925,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'startTranslate') {
-    const sel = getSelectedTextInEditable() || savedSelection;
+    const sel = getAnySelectedText() || savedSelection;
     if (sel) {
       savedSelection = sel;
       originalText = sel.text;

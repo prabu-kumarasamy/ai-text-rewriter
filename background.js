@@ -23,27 +23,27 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
       id: MENU_ID,
       title: 'Rewrite with AI',
-      contexts: ['editable']
+      contexts: ['editable', 'selection']
     });
     MODES.forEach(mode => {
       chrome.contextMenus.create({
         id: `${MENU_ID}-${mode.id}`,
         parentId: MENU_ID,
         title: mode.label,
-        contexts: ['editable']
+        contexts: ['editable', 'selection']
       });
     });
     chrome.contextMenus.create({
       id: `${MENU_ID}-separator`,
       parentId: MENU_ID,
       type: 'separator',
-      contexts: ['editable']
+      contexts: ['editable', 'selection']
     });
     chrome.contextMenus.create({
       id: `${MENU_ID}-voice`,
       parentId: MENU_ID,
       title: 'Voice Input',
-      contexts: ['editable']
+      contexts: ['editable', 'selection']
     });
   });
 });
@@ -92,7 +92,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (!tab || !tab.id) return;
 
   const menuItemId = info.menuItemId;
-  if (!menuItemId || !info.editable) return;
+  if (!menuItemId) return;
+  if (!info.editable && !info.selectionText) return;
 
   if (menuItemId === `${MENU_ID}-voice`) {
     safeSendMessage(tab.id, { action: 'startVoiceInput' });

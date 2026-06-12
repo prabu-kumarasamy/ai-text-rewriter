@@ -1,12 +1,11 @@
 {
   "manifest_version": 3,
   "name": "AI Text Rewriter",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Rewrite text in any editable field using AI-powered suggestions. Improve grammar, adjust tone, and enhance clarity.",
   "permissions": [
     "contextMenus",
-    "storage",
-    "activeTab"
+    "storage"
   ],
   "host_permissions": [
     "https://api.openai.com/*",
@@ -27,7 +26,8 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "AI Text Rewriter"
+    "default_title": "AI Text Rewriter",
+    "default_popup": "popup.html"
   },
   "options_page": "settings.html",
   "icons": {
